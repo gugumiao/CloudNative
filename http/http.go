@@ -1,12 +1,19 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+
+	_ "net/http/pprof"
+
+	"github.com/golang/glog"
 )
 
 func healthz(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintln(w, "200")
+	io.WriteString(w, "200\n")
 }
 
 func headers(w http.ResponseWriter, req *http.Request) {
@@ -14,7 +21,7 @@ func headers(w http.ResponseWriter, req *http.Request) {
 	for name, headers := range req.Header {
 		for _, h := range headers {
 			w.Header().Set(name, h)
-			fmt.Fprintf(w, "%v: %v\n", name, h)
+			io.WriteString(w, fmt.Sprintf("%s=%s\n", name, h))
 		}
 	}
 }
@@ -28,7 +35,12 @@ func GetIP(r *http.Request) string {
 }
 
 func main() {
+	flag.Set("v", "4")
+	glog.V(2).Info("Starting http server...")
 	http.HandleFunc("/", headers)
 	http.HandleFunc("/healthz", healthz)
-	http.ListenAndServe(":12345", nil)
+	err := http.ListenAndServe(":12345", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
